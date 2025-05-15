@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html>
+<head>
+            <style></style>
+        </head>
+        <body>
+            
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Bouncy Ball Physics Lab!</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #eef2f7;
+            color: #333;
+            line-height: 1.6;
+        }
+        h1, h2, h3, h4 {
+            color: #1a4a72;
+            margin-bottom: 10px;
+        }
+        #lab-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            max-width: 1300px; /* Increased max-width for wider layout */
+            margin: 0 auto;
+        }
+        #controls-panel, #data-analysis, #explanation {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid #dcdcdc;
+        }
+        #controls-panel {
+            flex: 1;
+            min-width: 280px; /* Adjusted min-width */
+            max-width: 350px;
+        }
+        #simulation-window {
+            flex: 2; /* Allow simulation to take more space */
+            display: flex;
+            flex-direction: column; /* Stack canvas and any messages */
+            justify-content: center;
+            align-items: center;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            min-height: 440px; /* Adjusted for new canvas height */
+            border: 1px solid #dcdcdc;
+            overflow: hidden;
+            position: relative;
+        }
+        #lab-canvas {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        #data-analysis {
+            flex: 1;
+            min-width: 280px; /* Adjusted min-width */
+            max-width: 350px;
+        }
+        #explanation {
+            flex-basis: 100%;
+            margin-top: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="range"], select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 20px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        button#start-sim {
+            background-color: #007bff;
+            color: white;
+        }
+        button#start-sim:hover {
+            background-color: #0056b3;
+        }
+        button#reset-sim {
+            background-color: #6c757d;
+            color: white;
+        }
+        button#reset-sim:hover {
+            background-color: #5a6268;
+        }
+        button:last-child { margin-right: 0; }
+
+        .bar-container { margin-bottom: 15px; }
+        .bar-container label { font-weight: normal; font-size: 0.95em; margin-top: 0; margin-bottom: 2px; color: #555; }
+        .bar-outer { width: calc(100% - 60px); background-color: #e9ecef; border-radius: 4px; height: 22px; overflow: hidden; display: inline-block; vertical-align: middle; }
+        .bar-inner { height: 100%; background-color: #28a745; width: 0%; transition: width 0.2s ease-out; border-radius: 4px; }
+        #ke-bar { background-color: #ffc107; }
+        #loss-bar { background-color: #dc3545; }
+        #total-bar { background-color: #adb5bd; }
+        .bar-container span { display: inline-block; vertical-align: middle; width: 50px; text-align: right; font-size: 0.9em; color: #555; font-family: 'Courier New', Courier, monospace; }
+
+        #metrics p { margin: 8px 0; font-size: 0.95em; }
+        #metrics strong { color: #007bff; }
+
+        #explosion-message {
+            position: absolute;
+            top: 40%; /* Adjusted for visual centering with canvas */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5em; /* Slightly smaller */
+            color: #dc3545;
+            font-weight: bold;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 10;
+            text-align: center;
+        }
+    </style>
+
+
+
+    <h1>The Bouncy Ball Physics Lab!</h1>
+    <p>Welcome, future physicist! Ever wondered why a super ball bounces higher than a soccer ball? Or how much oomph you need to make a ping pong ball return to its drop height? Let's find out! Explore the world of elastic and inelastic collisions, energy transformations, and what happens when you give a ball *too much* of a push! 💥</p>
+
+    <div id="lab-container">
+        <div id="controls-panel">
+            <h2>Experiment Controls</h2>
+            <label for="ball-select">Choose Your Ball:</label>
+            <select id="ball-select"><option value="super-ball">Super Ball</option><option value="tennis-ball">Tennis Ball</option><option value="golf-ball">Golf Ball</option><option value="ping-pong">Ping Pong Ball</option><option value="basketball">Basketball</option><option value="soccer-ball">Soccer Ball</option><option value="bowling-ball">Bowling Ball</option><option value="steel-ball">Steel Ball Bearing</option><option value="clay-ball">Clay Ball</option></select> <!-- Options populated by JS -->
+
+            <label for="drop-height">Drop Height (meters):</label>
+            <input type="range" id="drop-height" min="0.1" max="2.5" value="1.5" step="0.1"> <!-- Adjusted max and default -->
+            <span id="drop-height-value">1.5 m</span>
+
+            <label for="initial-push">Initial Downward Push (m/s):</label>
+            <input type="range" id="initial-push" min="0" max="50" value="0" step="0.5"> <!-- Max push kept -->
+            <span id="initial-push-value">0.0 m/s</span>
+
+            <button id="start-sim">Drop Ball!</button>
+            <button id="reset-sim">Reset</button>
+        </div>
+
+        <div id="simulation-window">
+             <canvas id="lab-canvas" width="500" height="400"></canvas> <!-- Adjusted canvas size -->
+             <div id="explosion-message" style="display: none;">KABOOM! 💥</div>
+             <audio id="bounce-sound" src="https://www.soundjay.com/sports/ping-pong-ball-hit-01.wav" preload="auto"></audio>
+             <audio id="explosion-sound" src="https://www.soundjay.com/transport/explosion-01.wav" preload="auto"></audio>
+        </div>
+
+        <div id="data-analysis">
+            <h2>Data &amp; Analysis</h2>
+            <div id="metrics">
+                <h4>Experiment Results</h4>
+                <p>Selected Ball: <strong id="selected-ball-name">Super Ball</strong></p>
+                <p>Coefficient of Restitution (COR): <strong id="cor-value">0.92</strong></p>
+                <p>Mass (approx. kg): <strong id="mass-value">0.060</strong></p>
+                <p>Max Bounce Height (1st real): <strong id="max-bounce-height">- m</strong></p>
+                <p>Total Bounces: <strong id="bounce-count">0</strong></p>
+            </div>
+            <div id="energy-graphs">
+                <h4>Energy Breakdown</h4>
+                <div class="bar-container">
+                    <label>Potential Energy (PE):</label>
+                    <div class="bar-outer"><div id="pe-bar" class="bar-inner" style="width: 100%;"></div></div>
+                    <span id="pe-value">0.88 J</span>
+                </div>
+                <div class="bar-container">
+                    <label>Kinetic Energy (KE):</label>
+                    <div class="bar-outer"><div id="ke-bar" class="bar-inner" style="width: 0%;"></div></div>
+                    <span id="ke-value">0.00 J</span>
+                </div>
+                <div class="bar-container">
+                    <label>Energy Lost (Thermal):</label>
+                    <div class="bar-outer"><div id="loss-bar" class="bar-inner" style="width: 0%;"></div></div>
+                    <span id="loss-value">0.00 J</span>
+                </div>
+                 <div class="bar-container">
+                    <label>Total Initial Energy:</label>
+                    <div class="bar-outer"><div id="total-bar" class="bar-inner" style="width: 100%;"></div></div>
+                    <span id="total-value">0.88 J</span>
+                </div>
+            </div>
+        </div>
+
+         <div id="explanation">
+            <h2>What's Happening? The Physics Behind the Bounce</h2>
+            <p>When you drop a ball, gravity pulls it down, converting <strong>Potential Energy (PE)</strong> (energy due to height) into <strong>Kinetic Energy (KE)</strong> (energy due to motion).</p>
+            <p>When the ball hits the ground, it undergoes a collision. In a perfectly <strong>Elastic Collision</strong>, all the KE is momentarily stored as elastic potential energy in the deformed ball and then released, converting back into KE, causing the ball to bounce back to its original height (Coefficient of Restitution, COR = 1). In reality, collisions are often <strong>Inelastic</strong> – some KE is lost as heat, sound, or permanent deformation. This lost energy is shown as the "Energy Lost" bar.</p>
+            <p>The <strong>Coefficient of Restitution (COR)</strong> is a number between 0 and 1 that tells us how 'bouncy' a collision is. A COR near 1 means highly elastic (bouncy), and a COR near 0 means highly inelastic (like dropping a ball of clay). The height of a bounce (if dropped from rest) is proportional to the square of the COR: `Bounce Height = COR² * Drop Height`.</p>
+            <p>Adding an initial downward push gives the ball more initial KE. To bounce back to the original height, the ball needs enough KE *after* the bounce to convert back to the original PE. Because energy is lost in an inelastic collision (COR &lt; 1), you need to give the ball *more* initial KE before the bounce than the PE you want it to reach *after* the bounce.</p>
+            <p>And the explosion? If the initial downward velocity (and thus KE) is too high, the force of impact during the collision can exceed the physical limits of the ball's material, causing it to... well, explode! (In our simulation, at least!)</p>
+        </div>
+    </div>
+
+    <script>
+        // --- Constants ---
+        const g = 9.81; // m/s^2
+        const canvas = document.getElementById('lab-canvas');
+        const ctx = canvas.getContext('2d');
+        // Adjusted PIXELS_PER_METER for better visual scaling of balls
+        // Canvas height 400px. If max simulated height is ~2m, PPM = 400/2 = 200.
+        const PIXELS_PER_METER = 150; // Make 1 meter = 150 pixels. Max drop 2.5m => 375px.
+
+        const ballProperties = {
+            'super-ball': { name: 'Super Ball', mass: 0.06, cor: 0.92, radius: 0.03, color: 'dodgerblue', explosionThreshold: 45 },
+            'tennis-ball': { name: 'Tennis Ball', mass: 0.057, cor: 0.75, radius: 0.0335, color: 'chartreuse', explosionThreshold: 35 }, // Brighter green
+            'golf-ball': { name: 'Golf Ball', mass: 0.046, cor: 0.80, radius: 0.02135, color: 'ivory', explosionThreshold: 50, stroke: 'dimGray'},
+            'ping-pong': { name: 'Ping Pong Ball', mass: 0.0027, cor: 0.90, radius: 0.02, color: 'white', explosionThreshold: 25, stroke: 'black' },
+            'basketball': { name: 'Basketball', mass: 0.62, cor: 0.78, radius: 0.121, color: 'darkorange', explosionThreshold: 30 },
+            'soccer-ball': { name: 'Soccer Ball', mass: 0.43, cor: 0.70, radius: 0.11, color: 'pattern', explosionThreshold: 30 }, // Special 'pattern' color
+            'bowling-ball': { name: 'Bowling Ball', mass: 6.0, cor: 0.15, radius: 0.108, color: 'indigo', explosionThreshold: 100 },
+            'steel-ball': { name: 'Steel Ball Bearing', mass: 0.5, cor: 0.65, radius: 0.04, color: 'silver', explosionThreshold: 70 },
+            'clay-ball': { name: 'Clay Ball', mass: 0.1, cor: 0.05, radius: 0.04, color: 'sienna', explosionThreshold: 10 },
+        };
+
+        let currentBall;
+        let dropHeight_m;
+        let initialPush_mps;
+        let ballY_px;
+        let velY_mps;
+        let totalInitialEnergy_J;
+        let energyLost_J = 0;
+        let animationFrameId;
+        let bounces = 0;
+        let isSimulating = false;
+        let isExploded = false;
+        let actualMaxBounceHeight_m = 0; // Tracks the highest point reached after the first bounce
+        let lastTime = 0;
+
+        const ballSelect = document.getElementById('ball-select');
+        const dropHeightSlider = document.getElementById('drop-height');
+        const dropHeightValueSpan = document.getElementById('drop-height-value');
+        const initialPushSlider = document.getElementById('initial-push');
+        const initialPushValueSpan = document.getElementById('initial-push-value');
+        const startSimButton = document.getElementById('start-sim');
+        const resetSimButton = document.getElementById('reset-sim');
+        const selectedBallNameSpan = document.getElementById('selected-ball-name');
+        const corValueSpan = document.getElementById('cor-value');
+        const massValueSpan = document.getElementById('mass-value');
+        const maxBounceHeightSpan = document.getElementById('max-bounce-height');
+        const bounceCountSpan = document.getElementById('bounce-count');
+        const peBar = document.getElementById('pe-bar');
+        const keBar = document.getElementById('ke-bar');
+        const lossBar = document.getElementById('loss-bar');
+        const totalBar = document.getElementById('total-bar'); // Refers to the inner div of total energy bar
+        const peValueSpan = document.getElementById('pe-value');
+        const keValueSpan = document.getElementById('ke-value');
+        const lossValueSpan = document.getElementById('loss-value');
+        const totalValueSpan = document.getElementById('total-value');
+        const explosionMessageDiv = document.getElementById('explosion-message');
+        const bounceSound = document.getElementById('bounce-sound');
+        const explosionSound = document.getElementById('explosion-sound');
+
+        window.onload = setup;
+
+        function setup() {
+            populateBallSelector();
+            ballSelect.addEventListener('change', handleBallSelectionChange);
+            dropHeightSlider.addEventListener('input', updateDropHeightDisplay);
+            initialPushSlider.addEventListener('input', updateInitialPushDisplay);
+            startSimButton.addEventListener('click', startSimulation);
+            resetSimButton.addEventListener('click', resetSimulation);
+            
+            // Set initial ball and reset
+            handleBallSelectionChange(); // This will also call resetSimulation
+        }
+
+        function populateBallSelector() {
+            Object.keys(ballProperties).forEach(key => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = ballProperties[key].name;
+                ballSelect.appendChild(option);
+            });
+            ballSelect.value = 'super-ball'; // Default selection
+        }
+        
+        function handleBallSelectionChange() {
+            const selectedKey = ballSelect.value;
+            currentBall = ballProperties[selectedKey];
+            resetSimulation(); // Reset simulation with the new ball
+        }
+
+        function updateDropHeightDisplay() {
+            dropHeightValueSpan.textContent = parseFloat(dropHeightSlider.value).toFixed(1) + ' m';
+            if (!isSimulating) {
+                resetVisualsAndEnergy();
+            }
+        }
+
+        function updateInitialPushDisplay() {
+            initialPushValueSpan.textContent = parseFloat(initialPushSlider.value).toFixed(1) + ' m/s';
+            if (!isSimulating) {
+                resetVisualsAndEnergy();
+            }
+        }
+        
+        function resetVisualsAndEnergy() {
+            // Called when sliders change and sim is not running
+            dropHeight_m = parseFloat(dropHeightSlider.value);
+            initialPush_mps = parseFloat(initialPushSlider.value);
+            currentBall = ballProperties[ballSelect.value]; // Ensure currentBall is up-to-date
+
+            const ballRadiusPx = currentBall.radius * PIXELS_PER_METER;
+            ballY_px = canvas.height - (dropHeight_m * PIXELS_PER_METER) - ballRadiusPx; // Set initial position for drawing
+            velY_mps = 0;
+
+            const initialPE_J = currentBall.mass * g * dropHeight_m;
+            const initialKE_J = 0.5 * currentBall.mass * initialPush_mps * initialPush_mps;
+            totalInitialEnergy_J = initialPE_J + initialKE_J;
+            energyLost_J = 0;
+
+            updateEnergyBars(initialPE_J, initialKE_J, 0, totalInitialEnergy_J);
+            totalValueSpan.textContent = totalInitialEnergy_J.toFixed(2) + ' J';
+            updateMetricsDisplay();
+            draw();
+        }
+
+
+        function startSimulation() {
+            if (isSimulating) return;
+            isSimulating = true;
+            isExploded = false;
+            explosionMessageDiv.style.display = 'none';
+            lastTime = 0; // Reset lastTime for deltaTime calculation
+
+            bounces = 0;
+            energyLost_J = 0;
+            actualMaxBounceHeight_m = 0; // Reset actual max bounce height tracker
+
+            dropHeight_m = parseFloat(dropHeightSlider.value);
+            initialPush_mps = parseFloat(initialPushSlider.value);
+            currentBall = ballProperties[ballSelect.value];
+
+            totalInitialEnergy_J = currentBall.mass * g * dropHeight_m + 0.5 * currentBall.mass * initialPush_mps * initialPush_mps;
+            totalValueSpan.textContent = totalInitialEnergy_J.toFixed(2) + ' J';
+            updateMetricsDisplay(); // Update metrics like ball name
+
+            if (initialPush_mps > currentBall.explosionThreshold) {
+                isExploded = true;
+                isSimulating = false;
+                explodeAnimation();
+                energyLost_J = totalInitialEnergy_J;
+                updateEnergyBars(0, 0, energyLost_J, totalInitialEnergy_J);
+                lossValueSpan.textContent = energyLost_J.toFixed(2) + ' J (All!)';
+                peValueSpan.textContent = '0.00 J';
+                keValueSpan.textContent = '0.00 J';
+                maxBounceHeightSpan.textContent = "N/A (Exploded)";
+                return;
+            }
+
+            const ballRadiusPx = currentBall.radius * PIXELS_PER_METER;
+            ballY_px = canvas.height - (dropHeight_m * PIXELS_PER_METER) - ballRadiusPx;
+            velY_mps = initialPush_mps;
+
+            const initialPE_J = currentBall.mass * g * dropHeight_m;
+            const initialKE_J = 0.5 * currentBall.mass * initialPush_mps * initialPush_mps;
+            updateEnergyBars(initialPE_J, initialKE_J, 0, totalInitialEnergy_J);
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function gameLoop(currentTime) {
+            if (!isSimulating || isExploded) return;
+
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            // Skip first frame if deltaTime is NaN or too large (e.g. > 0.1s)
+            if (isNaN(deltaTime) || deltaTime <= 0 || deltaTime > 0.1) {
+                animationFrameId = requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            velY_mps += g * deltaTime;
+            ballY_px += velY_mps * PIXELS_PER_METER * deltaTime;
+
+            const ballRadiusPx = currentBall.radius * PIXELS_PER_METER;
+            const groundContactYPx = canvas.height - ballRadiusPx; // Y-coord of center when bottom touches ground
+
+            // Current height of bottom of ball from ground in meters
+            const heightOfBottomOfBall_m = (canvas.height - (ballY_px + ballRadiusPx)) / PIXELS_PER_METER;
+
+            if (bounces === 0 && velY_mps < 0) { // Ball is moving up for the first time AFTER the first impact
+                // This logic is for AFTER the first bounce has occurred and bounces is incremented.
+                // It should be: if (bounces === 1 && velY_mps < 0)
+            }
+             // Corrected tracking for max bounce height after the first bounce
+            if (bounces === 1 && velY_mps < 0) { // Moving up after 1st bounce
+                actualMaxBounceHeight_m = Math.max(actualMaxBounceHeight_m, heightOfBottomOfBall_m);
+            }
+
+
+            if (ballY_px >= groundContactYPx) { // Collision with ground
+                ballY_px = groundContactYPx; // Snap to ground
+
+                const velY_mps_beforeBounce = velY_mps;
+                velY_mps = -(velY_mps * currentBall.cor);
+                bounces++;
+                bounceCountSpan.textContent = bounces;
+
+                const keBeforeBounce_J = 0.5 * currentBall.mass * velY_mps_beforeBounce * velY_mps_beforeBounce;
+                const keAfterBounce_J = 0.5 * currentBall.mass * velY_mps * velY_mps;
+                energyLost_J += Math.max(0, keBeforeBounce_J - keAfterBounce_J); // Ensure non-negative loss
+
+                if (bounceSound.readyState >= 2) { // Ensure sound is somewhat loaded
+                    bounceSound.currentTime = 0;
+                    bounceSound.play().catch(e => {}); // Ignore playback errors silently for now
+                }
+                
+                 // Update max bounce height display after the first bounce's peak is likely passed or it's coming down
+                if (bounces === 1) { // After first bounce
+                    if(velY_mps >= 0 && actualMaxBounceHeight_m > 0) { // Started coming down or on ground
+                         maxBounceHeightSpan.textContent = actualMaxBounceHeight_m.toFixed(2) + ' m';
+                    } else if (velY_mps < 0) { // Still going up
+                         maxBounceHeightSpan.textContent = actualMaxBounceHeight_m.toFixed(2) + ' m (tracking)';
+                    } else { // Very low bounce, didn't go up much
+                         maxBounceHeightSpan.textContent = '0.00 m';
+                    }
+                }
+
+
+                // Stopping condition: low velocity AND on/near ground
+                if (Math.abs(velY_mps) < 0.15 && heightOfBottomOfBall_m < 0.02) { // Stricter stopping
+                    velY_mps = 0;
+                    ballY_px = groundContactYPx; // Ensure it rests on ground
+                    energyLost_J += keAfterBounce_J; // Remaining KE is lost
+                    isSimulating = false;
+                    // Ensure final actualMaxBounceHeight_m is displayed
+                    if (bounces > 0 && actualMaxBounceHeight_m > 0) {
+                        maxBounceHeightSpan.textContent = actualMaxBounceHeight_m.toFixed(2) + ' m';
+                    } else if (bounces > 0) {
+                         maxBounceHeightSpan.textContent = '0.00 m'; // If it bounced but didn't get high
+                    }
+                }
+            }
+            
+            const currentPE_J = currentBall.mass * g * Math.max(0, heightOfBottomOfBall_m);
+            const currentKE_J = 0.5 * currentBall.mass * velY_mps * velY_mps;
+            updateEnergyBars(currentPE_J, currentKE_J, energyLost_J, totalInitialEnergy_J);
+            draw();
+
+            if (isSimulating) {
+                animationFrameId = requestAnimationFrame(gameLoop);
+            } else {
+                // Simulation stopped, final update of displays
+                updateEnergyBars(0, 0, energyLost_J, totalInitialEnergy_J); // Should be all PE=0, KE=0
+                draw(); // Final draw state
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.stroke();
+
+            const ballRadiusPx = currentBall.radius * PIXELS_PER_METER;
+            // Initial drop height marker (bottom of the ball)
+            const initialDropLineY_px = canvas.height - (dropHeight_m * PIXELS_PER_METER);
+            ctx.strokeStyle = '#adb5bd';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, initialDropLineY_px);
+            ctx.lineTo(canvas.width, initialDropLineY_px);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#555';
+            ctx.font = '12px sans-serif';
+            ctx.fillText(`Drop Level: ${dropHeight_m.toFixed(1)}m`, 10, initialDropLineY_px - 8);
+
+            // Draw ball
+            const ballCenterX = canvas.width / 2; // Keep ball horizontally centered
+            
+            if (currentBall.color === "pattern" && currentBall.name === "Soccer Ball") {
+                drawSoccerBall(ballCenterX, ballY_px, ballRadiusPx);
+            } else {
+                ctx.beginPath();
+                ctx.fillStyle = currentBall.color;
+                ctx.arc(ballCenterX, ballY_px, ballRadiusPx, 0, Math.PI * 2);
+                ctx.fill();
+                if (currentBall.stroke) {
+                    ctx.strokeStyle = currentBall.stroke;
+                    ctx.lineWidth = Math.max(1, ballRadiusPx * 0.05); // Stroke relative to radius
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function drawSoccerBall(x, y, radius) {
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = Math.max(1, radius * 0.05);
+            ctx.stroke(); // Outline the ball
+
+            // Simplified pattern: a few black "patches" (circles for simplicity)
+            const patchData = [ // {angle_offset_factor, distance_factor, size_factor}
+                { ao: 0, d: 0, s: 0.35 }, // Central patch
+                { ao: 0, d: 0.6, s: 0.3 }, { ao: 0.4, d: 0.6, s: 0.3 },
+                { ao: 0.8, d: 0.6, s: 0.3 }, { ao: 1.2, d: 0.6, s: 0.3 },
+                { ao: 1.6, d: 0.6, s: 0.3 }
+            ];
+            ctx.fillStyle = 'black';
+            patchData.forEach(p => {
+                const angle = p.ao * Math.PI;
+                const patchX = x + Math.cos(angle) * (radius * p.d);
+                const patchY = y + Math.sin(angle) * (radius * p.d);
+                const patchRadius = radius * p.s;
+                ctx.beginPath();
+                ctx.arc(patchX, patchY, patchRadius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+
+        function explodeAnimation() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            explosionMessageDiv.style.display = 'block';
+            if (explosionSound.readyState >= 2) {
+                explosionSound.currentTime = 0;
+                explosionSound.play().catch(e => {});
+            }
+            // Optional: simple visual effect on canvas
+            ctx.fillStyle = 'rgba(255, 100, 0, 0.5)';
+            for(let i=0; i< 20; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random()*canvas.width, Math.random()*canvas.height, Math.random()*30+10,0,Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        function updateEnergyBars(pe, ke, loss, total) {
+            const safeTotal = total > 0 ? total : 1;
+            peBar.style.width = Math.min(100, Math.max(0, (pe / safeTotal) * 100)) + '%';
+            keBar.style.width = Math.min(100, Math.max(0, (ke / safeTotal) * 100)) + '%';
+            lossBar.style.width = Math.min(100, Math.max(0, (loss / safeTotal) * 100)) + '%';
+            totalBar.style.width = '100%'; // Total initial energy is the 100% reference
+
+            peValueSpan.textContent = pe.toFixed(2) + ' J';
+            keValueSpan.textContent = ke.toFixed(2) + ' J';
+            lossValueSpan.textContent = loss.toFixed(2) + ' J';
+        }
+
+        function updateMetricsDisplay() {
+            if (!currentBall) return; // Guard if currentBall isn't set yet
+            selectedBallNameSpan.textContent = currentBall.name;
+            corValueSpan.textContent = currentBall.cor.toFixed(2);
+            massValueSpan.textContent = currentBall.mass.toFixed(3);
+            bounceCountSpan.textContent = bounces;
+
+            if (!isSimulating && !isExploded) { // When sim is reset or stopped naturally
+                if (bounces > 0 && actualMaxBounceHeight_m > 0) {
+                    maxBounceHeightSpan.textContent = actualMaxBounceHeight_m.toFixed(2) + ' m';
+                } else if (bounces > 0) {
+                    maxBounceHeightSpan.textContent = '0.00 m'; // Bounced but didn't go high
+                } else {
+                    maxBounceHeightSpan.textContent = "- m"; // Not bounced yet
+                }
+            } else if (isExploded) {
+                 maxBounceHeightSpan.textContent = "N/A (Exploded)";
+            } else if (isSimulating && bounces === 0){
+                 maxBounceHeightSpan.textContent = "- m"; // Sim running, no bounces yet
+            }
+        }
+
+        function resetSimulation() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            isSimulating = false;
+            isExploded = false;
+            explosionMessageDiv.style.display = 'none';
+            lastTime = 0; // Reset for deltaTime calculation on next start
+
+            bounces = 0;
+            energyLost_J = 0;
+            actualMaxBounceHeight_m = 0;
+
+            currentBall = ballProperties[ballSelect.value]; // Ensure currentBall is set from selector
+            
+            resetVisualsAndEnergy(); // This now handles updating displays, energies, and drawing initial state
+        }
+    </script>
+
+
+            <script>// Write JavaScript here</script>
+        
+    
+</body>
